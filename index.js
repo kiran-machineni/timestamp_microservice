@@ -24,15 +24,32 @@ app.get("/api/hello", function (req, res) {
   res.json({greeting: 'hello API'});
 });
 
-app.get("/api/:date", function (req, res, next) {
-	const _date = req.params.date
-	const unix_date = Date.parse(_date)
-	if (!Number.isNaN(unix_date)) {
-		res.json({ unix: unix_date, utc: new Date(unix_date).toUTCString() })
+//date route
+app.get("/api/:date?", (req, res, next) => {
+	const date = req.params.date
+	const parsedDate = Date.parse(date)
+	if (!date) {
+		res.json({
+			unix: Math.floor(new Date().getTime()),
+			utc: new Date().toUTCString()
+		})
+	} else if (date && !Number.isNaN(parsedDate)) {
+		res.json({ unix: parsedDate, utc: new Date(parsedDate).toUTCString() })
+	} else if (date && !Number.isNaN(Number(date))) {
+		res.json({ unix: Number(date), utc: new Date(Number(date)).toUTCString() })
 	} else {
-		res.json({ unix: Number(_date), utc: new Date(Number(_date)).toUTCString() })
+		const err = new Error("Invalid Date")
+		err.status = 400
+		next(err)
 	}
 })
+
+// Error handling middleware
+app.use(function (err, req, res, next) {
+	res.status(err.status || 500)
+	res.json({ error: err.message })
+})
+
 
 // listen for requests :)
 var listener = app.listen(process.env.PORT, function () {
